@@ -111,7 +111,7 @@ footer{margin-top:28px;font-size:12.5px;color:var(--muted);line-height:1.5}
     <label>Interest rate <output id="oRate">4.00%</output></label>
     <input type="range" id="rRate" min="3" max="7" step="0.125" value="4">
     <label>Term <output id="oTerm">30 years</output></label>
-    <input type="range" id="rTerm" min="5" max="30" step="1" value="30">
+    <input type="range" id="rTerm" min="5" max="40" step="1" value="30">
     <label>Extra principal / month <output id="oExtra">$0</output></label>
     <input type="range" id="rExtra" min="0" max="1000" step="25" value="0">
     <label>Extra lump sum / year <output id="oLump">$0</output></label>
@@ -120,12 +120,18 @@ footer{margin-top:28px;font-size:12.5px;color:var(--muted);line-height:1.5}
       <input type="checkbox" id="cBiweekly">
       <span>Biweekly payments (26 half-payments &asymp; one extra payment a year)</span>
     </div>
+    <div class="toggle">
+      <input type="checkbox" id="cIO">
+      <span>Interest-only payments &mdash; lowest possible monthly; principal repaid whenever they choose (or at end of term)</span>
+    </div>
     <div class="presets" id="presets">
       <button class="chip" data-p='{"rate":4,"term":30,"extra":0,"lump":0,"bw":false}'>Dad&rsquo;s plan &mdash; 4% / 30 yr</button>
       <button class="chip" data-p='{"rate":5,"term":30,"extra":0,"lump":0,"bw":false}'>AFR-safe &mdash; 5% / 30 yr</button>
       <button class="chip" data-p='{"rate":5,"term":15,"extra":0,"lump":0,"bw":false}'>15-year payoff</button>
       <button class="chip" data-p='{"rate":5,"term":30,"extra":250,"lump":0,"bw":false}'>30 yr + $250/mo extra</button>
       <button class="chip" data-p='{"rate":5,"term":30,"extra":0,"lump":0,"bw":true}'>30 yr, biweekly</button>
+      <button class="chip" data-p='{"rate":5,"term":30,"extra":0,"lump":0,"bw":false,"io":true}'>Lowest payment &mdash; interest-only, $875/mo</button>
+      <button class="chip" data-p='{"rate":5,"term":40,"extra":0,"lump":0,"bw":false}'>40-yr stretch &mdash; $1,013/mo</button>
     </div>
   </div>
 
@@ -215,28 +221,39 @@ footer{margin-top:28px;font-size:12.5px;color:var(--muted);line-height:1.5}
 
   function compute(p){
     const r=p.rate/100/12, n=p.term*12;
-    let base=p.amt*r/(1-Math.pow(1+r,-n));
-    let monthly=p.bw? base*13/12 : base;
-    monthly+=p.extra;
+    let monthly, balloon=0;
     let bal=p.amt, months=0, interest=0, y1=0;
     const years=[]; let yi=0,yp=0;
-    let lastPay=monthly;
-    while(bal>0 && months<1200){
-      const i=bal*r; let pr=monthly-i;
-      let paid=monthly;
-      if(p.lump>0 && months%12===11) pr+=p.lump, paid+=p.lump;
-      if(pr>=bal){ paid=bal+i; pr=bal; }
-      interest+=i; yi+=i; yp+=pr; bal-=pr; months++;
-      if(months<=12) y1+=i;
-      if(months%12===0 || bal<=0){ years.push({y:Math.ceil(months/12),int:yi,pr:yp,bal:Math.max(bal,0)}); yi=0; yp=0; }
-      lastPay=paid;
+    if(p.io){
+      monthly=p.amt*r+p.extra;
+      while(months<n && bal>0){
+        const i=bal*r; interest+=i; yi+=i;
+        let pr=p.extra;
+        if(p.lump>0 && months%12===11) pr+=p.lump;
+        pr=Math.min(pr,bal); bal-=pr; yp+=pr; months++;
+        if(months<=12) y1+=i;
+        if(months%12===0 || bal<=0){ years.push({y:Math.ceil(months/12),int:yi,pr:yp,bal:Math.max(bal,0)}); yi=0; yp=0; }
+      }
+      balloon=bal;
+    }else{
+      const base=p.amt*r/(1-Math.pow(1+r,-n));
+      monthly=(p.bw? base*13/12 : base)+p.extra;
+      while(bal>0 && months<1200){
+        const i=bal*r; let pr=monthly-i;
+        if(p.lump>0 && months%12===11) pr+=p.lump;
+        if(pr>=bal) pr=bal;
+        interest+=i; yi+=i; yp+=pr; bal-=pr; months++;
+        if(months<=12) y1+=i;
+        if(months%12===0 || bal<=0){ years.push({y:Math.ceil(months/12),int:yi,pr:yp,bal:Math.max(bal,0)}); yi=0; yp=0; }
+      }
     }
-    return {monthly, months, interest, y1, years, base};
+    return {monthly, months, interest, y1, years, balloon};
   }
 
   function read(){
     return {amt:+$('rAmt').value, rate:+$('rRate').value, term:+$('rTerm').value,
-            extra:+$('rExtra').value, lump:+$('rLump').value, bw:$('cBiweekly').checked};
+            extra:+$('rExtra').value, lump:+$('rLump').value, bw:$('cBiweekly').checked,
+            io:$('cIO').checked};
   }
 
   function render(){
@@ -246,9 +263,14 @@ footer{margin-top:28px;font-size:12.5px;color:var(--muted);line-height:1.5}
     $('oTerm').textContent=p.term+' years';
     $('oExtra').textContent=fmt(p.extra);
     $('oLump').textContent=fmt(p.lump);
-    $('pmt').innerHTML=fmt2(res.monthly)+' <small>/ month'+(p.bw?' equivalent (paid biweekly)':'')+'</small>';
-    $('tPayoff').textContent=(res.months/12).toFixed(1)+' yr';
-    $('tPayoffN').textContent=res.months+' payments';
+    $('pmt').innerHTML=fmt2(res.monthly)+' <small>/ month'+(p.io?' to start (interest-only)':(p.bw?' equivalent (paid biweekly)':''))+'</small>';
+    if(res.balloon>0){
+      $('tPayoff').textContent=p.term+' yr term';
+      $('tPayoffN').textContent='balloon of '+fmt(res.balloon)+' due at end';
+    }else{
+      $('tPayoff').textContent=(res.months/12).toFixed(1)+' yr';
+      $('tPayoffN').textContent=res.months+' payments';
+    }
     $('tInt').textContent=fmt(res.interest);
     $('tTotal').textContent=fmt(p.amt+res.interest);
     $('tY1').textContent=fmt(res.y1);
@@ -279,7 +301,8 @@ footer{margin-top:28px;font-size:12.5px;color:var(--muted);line-height:1.5}
     let h='<div class="tablewrap"><table><thead><tr><th>Scenario</th><th>Monthly</th><th>Paid off</th><th>Total interest</th><th>Year-1 interest</th><th>AFR</th><th></th></tr></thead><tbody>';
     pins.forEach((s,i)=>{
       const ok=s.p.rate>=afrFor(s.p.term);
-      h+='<tr><td>'+s.name+'</td><td>'+fmt2(s.r.monthly)+'</td><td>'+(s.r.months/12).toFixed(1)+' yr</td><td>'+fmt(s.r.interest)+'</td><td>'+fmt(s.r.y1)+'</td><td>'+(ok?'&#10003; ok':'&#9888; low')+'</td><td><button class="del" data-i="'+i+'" aria-label="Remove scenario">&#10005;</button></td></tr>';
+      const payoff=s.r.balloon>0? s.p.term+'yr + balloon' : (s.r.months/12).toFixed(1)+' yr';
+      h+='<tr><td>'+s.name+'</td><td>'+fmt2(s.r.monthly)+'</td><td>'+payoff+'</td><td>'+fmt(s.r.interest)+'</td><td>'+fmt(s.r.y1)+'</td><td>'+(ok?'&#10003; ok':'&#9888; low')+'</td><td><button class="del" data-i="'+i+'" aria-label="Remove scenario">&#10005;</button></td></tr>';
     });
     h+='</tbody></table></div>';
     host.innerHTML=h;
@@ -292,6 +315,7 @@ footer{margin-top:28px;font-size:12.5px;color:var(--muted);line-height:1.5}
     if(p.extra) name+=' +'+fmt(p.extra)+'/mo';
     if(p.lump) name+=' +'+fmt(p.lump)+'/yr';
     if(p.bw) name+=' biweekly';
+    if(p.io) name+=' interest-only';
     pins.push({name,p,r});
     if(pins.length>8) pins.shift();
     renderPins();
@@ -301,12 +325,13 @@ footer{margin-top:28px;font-size:12.5px;color:var(--muted);line-height:1.5}
   document.querySelectorAll('#presets .chip').forEach(c=>c.addEventListener('click',()=>{
     const p=JSON.parse(c.dataset.p);
     $('rRate').value=p.rate; $('rTerm').value=p.term; $('rExtra').value=p.extra;
-    $('rLump').value=p.lump; $('cBiweekly').checked=p.bw;
+    $('rLump').value=p.lump; $('cBiweekly').checked=p.bw; $('cIO').checked=!!p.io;
     render();
   }));
 
   ['rAmt','rRate','rTerm','rExtra','rLump'].forEach(id=>$(id).addEventListener('input',render));
   $('cBiweekly').addEventListener('change',render);
+  $('cIO').addEventListener('change',render);
   render();
 })();
 </script>

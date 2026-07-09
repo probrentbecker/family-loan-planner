@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Becker–Lauer Family Loan Planner</title>
+<style>
+:root{
+  --ground:#FAF8F2; --surface:#FFFFFF; --ink:#26302A; --muted:#6E7570;
+  --line:#E3DFD2; --accent:#2E6B4F; --accent-ink:#FFFFFF; --accent-soft:#E7F0EA;
+  --warn:#8A5A16; --warn-bg:#F7ECD8; --good:#2E6B4F; --good-bg:#E7F0EA;
+  --hl:#F3EFE3;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --ground:#161A17; --surface:#1F2420; --ink:#E7E4DA; --muted:#9AA29B;
+    --line:#333A34; --accent:#74BE97; --accent-ink:#12281D; --accent-soft:#24352B;
+    --warn:#E4B36A; --warn-bg:#33290F; --good:#74BE97; --good-bg:#1F3328;
+    --hl:#272C26;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#161A17; --surface:#1F2420; --ink:#E7E4DA; --muted:#9AA29B;
+  --line:#333A34; --accent:#74BE97; --accent-ink:#12281D; --accent-soft:#24352B;
+  --warn:#E4B36A; --warn-bg:#33290F; --good:#74BE97; --good-bg:#1F3328;
+  --hl:#272C26;
+}
+:root[data-theme="light"]{
+  --ground:#FAF8F2; --surface:#FFFFFF; --ink:#26302A; --muted:#6E7570;
+  --line:#E3DFD2; --accent:#2E6B4F; --accent-ink:#FFFFFF; --accent-soft:#E7F0EA;
+  --warn:#8A5A16; --warn-bg:#F7ECD8; --good:#2E6B4F; --good-bg:#E7F0EA;
+  --hl:#F3EFE3;
+}
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);
+  font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;margin:0;padding:0}
+.wrap{max-width:1080px;margin:0 auto;padding:32px 20px 64px}
+header{margin-bottom:24px}
+h1{font-family:Georgia,'Iowan Old Style','Times New Roman',serif;
+  font-size:clamp(26px,4vw,34px);font-weight:600;margin:0 0 4px;text-wrap:balance;letter-spacing:.2px}
+.sub{color:var(--muted);margin:0;font-size:15px}
+.grid{display:grid;grid-template-columns:340px 1fr;gap:20px;align-items:start}
+@media(max-width:820px){.grid{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:20px}
+.card h2{font-family:Georgia,serif;font-size:18px;font-weight:600;margin:0 0 14px}
+label{display:flex;justify-content:space-between;align-items:baseline;
+  font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin:16px 0 6px}
+label:first-of-type{margin-top:0}
+label output{font-size:16px;font-weight:700;color:var(--ink);text-transform:none;letter-spacing:0;font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--accent);margin:0;display:block}
+.presets{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+.chip{border:1px solid var(--line);background:var(--surface);color:var(--ink);
+  border-radius:999px;padding:5px 12px;font-size:13px;cursor:pointer}
+.chip:hover{border-color:var(--accent);color:var(--accent)}
+.chip:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.toggle{display:flex;align-items:center;gap:10px;margin-top:16px;font-size:14px;color:var(--ink)}
+.toggle input{accent-color:var(--accent);width:17px;height:17px}
+.bignum{font-family:Georgia,serif;font-size:clamp(38px,6vw,52px);font-weight:600;
+  line-height:1.05;font-variant-numeric:tabular-nums;letter-spacing:-.5px}
+.bignum small{font-size:17px;color:var(--muted);font-family:system-ui,sans-serif;font-weight:400;letter-spacing:0}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:18px}
+.tile{background:var(--hl);border-radius:8px;padding:12px 14px}
+.tile .k{font-size:12px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.tile .v{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:2px}
+.tile .n{font-size:12px;color:var(--muted);margin-top:2px}
+.banner{border-radius:8px;padding:12px 14px;margin-top:18px;font-size:14px;line-height:1.5}
+.banner.good{background:var(--good-bg);color:var(--good)}
+.banner.warn{background:var(--warn-bg);color:var(--warn)}
+.banner b{font-weight:700}
+.actions{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
+button.primary{background:var(--accent);color:var(--accent-ink);border:none;border-radius:8px;
+  padding:9px 16px;font-size:14px;font-weight:600;cursor:pointer}
+button.ghost{background:none;border:1px solid var(--line);color:var(--ink);border-radius:8px;
+  padding:9px 16px;font-size:14px;cursor:pointer}
+button.primary:hover{filter:brightness(1.07)}
+button.ghost:hover{border-color:var(--accent);color:var(--accent)}
+.tablewrap{overflow-x:auto;margin-top:12px}
+table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
+th{font-size:12px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);
+  text-align:right;padding:8px 10px;border-bottom:2px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+td{padding:7px 10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+tr.y1 td{background:var(--accent-soft)}
+.note{font-size:13px;color:var(--muted);margin-top:10px}
+.section{margin-top:20px}
+.pin-empty{color:var(--muted);font-size:14px;font-style:italic}
+td .del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:0 4px}
+td .del:hover{color:var(--warn)}
+.tax{margin-top:24px}
+.tax h2{font-family:Georgia,serif;font-size:20px;font-weight:600;margin:0 0 6px}
+.tax ol{margin:10px 0 0;padding-left:22px;font-size:14.5px;line-height:1.65}
+.tax li{margin-bottom:10px}
+.tax li::marker{color:var(--accent);font-weight:700}
+footer{margin-top:28px;font-size:12.5px;color:var(--muted);line-height:1.5}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+<header>
+  <h1>Becker&#8202;&ndash;&#8202;Lauer Family Loan Planner</h1>
+  <p class="sub">$210,000 house loan from Bill Becker to Carlie &amp; Joshua Lauer &mdash; move the sliders, pin scenarios you like, compare.</p>
+</header>
+
+<div class="grid">
+  <div class="card">
+    <h2>Loan terms</h2>
+    <label>Loan amount <output id="oAmt">$210,000</output></label>
+    <input type="range" id="rAmt" min="150000" max="300000" step="5000" value="210000">
+    <label>Interest rate <output id="oRate">4.00%</output></label>
+    <input type="range" id="rRate" min="3" max="7" step="0.125" value="4">
+    <label>Term <output id="oTerm">30 years</output></label>
+    <input type="range" id="rTerm" min="5" max="30" step="1" value="30">
+    <label>Extra principal / month <output id="oExtra">$0</output></label>
+    <input type="range" id="rExtra" min="0" max="1000" step="25" value="0">
+    <label>Extra lump sum / year <output id="oLump">$0</output></label>
+    <input type="range" id="rLump" min="0" max="10000" step="500" value="0">
+    <div class="toggle">
+      <input type="checkbox" id="cBiweekly">
+      <span>Biweekly payments (26 half-payments &asymp; one extra payment a year)</span>
+    </div>
+    <div class="presets" id="presets">
+      <button class="chip" data-p='{"rate":4,"term":30,"extra":0,"lump":0,"bw":false}'>Dad&rsquo;s plan &mdash; 4% / 30 yr</button>
+      <button class="chip" data-p='{"rate":5,"term":30,"extra":0,"lump":0,"bw":false}'>AFR-safe &mdash; 5% / 30 yr</button>
+      <button class="chip" data-p='{"rate":5,"term":15,"extra":0,"lump":0,"bw":false}'>15-year payoff</button>
+      <button class="chip" data-p='{"rate":5,"term":30,"extra":250,"lump":0,"bw":false}'>30 yr + $250/mo extra</button>
+      <button class="chip" data-p='{"rate":5,"term":30,"extra":0,"lump":0,"bw":true}'>30 yr, biweekly</button>
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <h2>What they&rsquo;d pay</h2>
+      <div class="bignum" id="pmt">$1,002.57 <small>/ month</small></div>
+      <div class="tiles">
+        <div class="tile"><div class="k">Paid off in</div><div class="v" id="tPayoff">30.0 yr</div><div class="n" id="tPayoffN">360 payments</div></div>
+        <div class="tile"><div class="k">Total interest</div><div class="v" id="tInt">$150,926</div><div class="n">over the life of the loan</div></div>
+        <div class="tile"><div class="k">Total repaid</div><div class="v" id="tTotal">$360,926</div><div class="n">principal + interest</div></div>
+        <div class="tile"><div class="k">Year-1 interest</div><div class="v" id="tY1">$8,333</div><div class="n">Bill&rsquo;s taxable income; the Lauers&rsquo; potential deduction</div></div>
+      </div>
+      <div class="banner" id="afrBanner"></div>
+      <div class="actions">
+        <button class="primary" id="btnPin">Pin this scenario</button>
+        <button class="ghost" id="btnClear">Clear pinned</button>
+      </div>
+    </div>
+
+    <div class="card section">
+      <h2>Pinned scenarios</h2>
+      <div id="pinBody"><p class="pin-empty">Nothing pinned yet &mdash; set the sliders, then &ldquo;Pin this scenario&rdquo; to build a side-by-side.</p></div>
+    </div>
+
+    <div class="card section">
+      <h2>Year-by-year schedule</h2>
+      <div class="tablewrap">
+        <table id="sched">
+          <thead><tr><th>Year</th><th>Paid</th><th>Interest</th><th>Principal</th><th>Balance</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p class="note">Year&nbsp;1 is highlighted: the interest column is what Bill reports as income each year, and what the Lauers may be able to deduct if the loan is properly secured and they itemize.</p>
+    </div>
+  </div>
+</div>
+
+<div class="card tax">
+  <h2>The tax side, in plain English</h2>
+  <ol>
+    <li><b>It&rsquo;s not a 1099 &mdash; and Bill doesn&rsquo;t have to file anything for them.</b> Banks send borrowers Form&nbsp;1098; a private individual lender is not required to. The Lauers deduct the interest on Schedule&nbsp;A as &ldquo;home mortgage interest not reported on Form&nbsp;1098,&rdquo; listing Bill&rsquo;s name, address, and Social Security number. Bill reports the same interest as income on his Schedule&nbsp;B. The two numbers must match &mdash; a simple annual statement from Bill (this tool&rsquo;s interest column) keeps everyone aligned.</li>
+    <li><b>Only interest is deductible &mdash; never the full payment.</b> Principal is not a deduction for them, and not income for Bill.</li>
+    <li><b>The loan must be a real, recorded mortgage.</b> For the Lauers to deduct anything, the debt must be secured by the home &mdash; a signed promissory note plus a mortgage recorded with the county recorder. An unsecured family IOU gets no deduction at all. Record it at closing.</li>
+    <li><b>They only benefit if they itemize.</b> First-year interest at 4% is about $8,300 &mdash; by itself well under the married-filing-jointly standard deduction. Combined with property tax and state income tax it might clear the bar; their tax preparer should run it both ways.</li>
+    <li><b>4% is below the IRS minimum rate for a 30-year family loan.</b> The IRS floor (the long-term Applicable Federal Rate) is 4.87% for loans made in July&nbsp;2026. Below that, the IRS treats the shortfall as if Bill received it anyway &mdash; taxable to him &mdash; and re-gifted it (roughly $1,800/yr at 4%; a paperwork nuisance, covered by the $19,000 annual gift exclusion). Cleanest fix: charge at least the AFR for the month of closing, e.g. 5%. If Bill wants them to net 4%, he can charge 5% and separately gift money back each year.</li>
+  </ol>
+</div>
+
+<div class="card tax">
+  <h2>Dad&rsquo;s 4% vs AFR-safe 5% &mdash; what it really means for the Lauers&rsquo; taxes</h2>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th></th><th>4% / 30 yr</th><th>5% / 30 yr</th><th>5% + Bill gifts back the difference</th></tr></thead>
+      <tbody>
+        <tr><td>Monthly payment</td><td>$1,002.57</td><td>$1,127.33</td><td>$1,127.33 (gift returns ~$1,500/yr)</td></tr>
+        <tr><td>Year-1 interest (deductible if they itemize)</td><td>$8,333</td><td>$10,430</td><td>$10,430</td></tr>
+        <tr><td>Year-1 tax savings <em>if</em> they itemize (22% bracket)</td><td>$1,833</td><td>$2,295</td><td>$2,295</td></tr>
+        <tr><td>30-year interest paid</td><td>$150,926</td><td>$195,837</td><td>$150,926 net of gifts</td></tr>
+        <tr><td>30-year net cost, fully itemized @ 22%</td><td>$117,722</td><td>$152,753</td><td><b>$107,842 &mdash; best</b></td></tr>
+        <tr><td>IRS imputed-interest problem for Bill</td><td>Yes (~$1,830/yr taxed to him, never received)</td><td>None</td><td>None</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <ol>
+    <li><b>A deduction never pays for a higher rate by itself.</b> Every extra dollar of interest at 5% returns at most 22&ndash;24 cents in tax savings. Straight-up, 4% costs the Lauers about $35,000 less than 5% over 30 years even after taxes.</li>
+    <li><b>But the Lauers probably get $0 tax savings either way.</b> They only benefit by itemizing, and year-1 interest ($8,300&ndash;$10,400) plus typical Indiana property and state tax on a $210k home falls well short of the $32,200 standard deduction (2026, married filing jointly). Unless they have unusually large other deductions, the mortgage-interest deduction is worth nothing to them &mdash; so it should not drive the rate decision.</li>
+    <li><b>The structure that wins on every axis: charge 5%, gift back the difference.</b> Bill charges the IRS-safe rate and gives the Lauers a gift each year (~$2,100 declining &mdash; far under his $19,000-per-person annual exclusion, and he and his spouse could give up to $76,000/yr to the couple combined). The Lauers net the same cost as 4%, Bill has no imputed-interest exposure, and if the Lauers ever do itemize, they hold the larger deduction. There is no scenario where plain 4% beats this.</li>
+  </ol>
+</div>
+
+<footer>Rates check against the July 2026 Applicable Federal Rates (Rev. Rul. 2026-12): long-term 4.87%, mid-term 4.26%, short-term 3.93% (monthly compounding). If the loan closes in a later month, re-check that month&rsquo;s AFR &mdash; the rate is locked at closing for the life of the loan. This is planning math, not tax advice; have a CPA bless the final structure.</footer>
+</div>
+
+<script>
+(function(){
+  const $=id=>document.getElementById(id);
+  const fmt=n=>'$'+Math.round(n).toLocaleString('en-US');
+  const fmt2=n=>'$'+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const AFR={short:3.93,mid:4.26,long:4.87}; // July 2026, monthly compounding
+
+  function afrFor(term){ return term<=3?AFR.short:(term<=9?AFR.mid:AFR.long); }
+  function afrName(term){ return term<=3?'short-term':(term<=9?'mid-term':'long-term'); }
+
+  function compute(p){
+    const r=p.rate/100/12, n=p.term*12;
+    let base=p.amt*r/(1-Math.pow(1+r,-n));
+    let monthly=p.bw? base*13/12 : base;
+    monthly+=p.extra;
+    let bal=p.amt, months=0, interest=0, y1=0;
+    const years=[]; let yi=0,yp=0;
+    let lastPay=monthly;
+    while(bal>0 && months<1200){
+      const i=bal*r; let pr=monthly-i;
+      let paid=monthly;
+      if(p.lump>0 && months%12===11) pr+=p.lump, paid+=p.lump;
+      if(pr>=bal){ paid=bal+i; pr=bal; }
+      interest+=i; yi+=i; yp+=pr; bal-=pr; months++;
+      if(months<=12) y1+=i;
+      if(months%12===0 || bal<=0){ years.push({y:Math.ceil(months/12),int:yi,pr:yp,bal:Math.max(bal,0)}); yi=0; yp=0; }
+      lastPay=paid;
+    }
+    return {monthly, months, interest, y1, years, base};
+  }
+
+  function read(){
+    return {amt:+$('rAmt').value, rate:+$('rRate').value, term:+$('rTerm').value,
+            extra:+$('rExtra').value, lump:+$('rLump').value, bw:$('cBiweekly').checked};
+  }
+
+  function render(){
+    const p=read(), res=compute(p);
+    $('oAmt').textContent=fmt(p.amt);
+    $('oRate').textContent=p.rate.toFixed(3).replace(/0+$/,'').replace(/\.$/,'.0')+'%';
+    $('oTerm').textContent=p.term+' years';
+    $('oExtra').textContent=fmt(p.extra);
+    $('oLump').textContent=fmt(p.lump);
+    $('pmt').innerHTML=fmt2(res.monthly)+' <small>/ month'+(p.bw?' equivalent (paid biweekly)':'')+'</small>';
+    $('tPayoff').textContent=(res.months/12).toFixed(1)+' yr';
+    $('tPayoffN').textContent=res.months+' payments';
+    $('tInt').textContent=fmt(res.interest);
+    $('tTotal').textContent=fmt(p.amt+res.interest);
+    $('tY1').textContent=fmt(res.y1);
+
+    const floor=afrFor(p.term), b=$('afrBanner');
+    if(p.rate>=floor){
+      b.className='banner good';
+      b.innerHTML='<b>Clears the IRS minimum.</b> '+p.rate.toFixed(2)+'% is at or above the '+afrName(p.term)+' AFR of '+floor+'% for a '+p.term+'-year loan made in July 2026. No imputed-interest problem.';
+    }else{
+      const foregone=p.amt*(floor-p.rate)/100;
+      b.className='banner warn';
+      b.innerHTML='<b>Below the IRS minimum.</b> A '+p.term+'-year loan must charge at least the '+afrName(p.term)+' AFR &mdash; '+floor+'% in July 2026. At '+p.rate.toFixed(2)+'%, the IRS taxes Bill on roughly '+fmt(foregone)+' of interest per year (first year) that he never actually received, and treats it as a gift back to the Lauers. Bump the rate to '+floor+'% or higher to avoid it.';
+    }
+
+    const tb=$('sched').querySelector('tbody'); tb.innerHTML='';
+    res.years.forEach(row=>{
+      const tr=document.createElement('tr');
+      if(row.y===1) tr.className='y1';
+      tr.innerHTML='<td>'+row.y+'</td><td>'+fmt(row.int+row.pr)+'</td><td>'+fmt(row.int)+'</td><td>'+fmt(row.pr)+'</td><td>'+fmt(row.bal)+'</td>';
+      tb.appendChild(tr);
+    });
+  }
+
+  const pins=[];
+  function renderPins(){
+    const host=$('pinBody');
+    if(!pins.length){ host.innerHTML='<p class="pin-empty">Nothing pinned yet &mdash; set the sliders, then &ldquo;Pin this scenario&rdquo; to build a side-by-side.</p>'; return; }
+    let h='<div class="tablewrap"><table><thead><tr><th>Scenario</th><th>Monthly</th><th>Paid off</th><th>Total interest</th><th>Year-1 interest</th><th>AFR</th><th></th></tr></thead><tbody>';
+    pins.forEach((s,i)=>{
+      const ok=s.p.rate>=afrFor(s.p.term);
+      h+='<tr><td>'+s.name+'</td><td>'+fmt2(s.r.monthly)+'</td><td>'+(s.r.months/12).toFixed(1)+' yr</td><td>'+fmt(s.r.interest)+'</td><td>'+fmt(s.r.y1)+'</td><td>'+(ok?'&#10003; ok':'&#9888; low')+'</td><td><button class="del" data-i="'+i+'" aria-label="Remove scenario">&#10005;</button></td></tr>';
+    });
+    h+='</tbody></table></div>';
+    host.innerHTML=h;
+    host.querySelectorAll('.del').forEach(btn=>btn.addEventListener('click',e=>{pins.splice(+e.currentTarget.dataset.i,1);renderPins();}));
+  }
+
+  $('btnPin').addEventListener('click',()=>{
+    const p=read(), r=compute(p);
+    let name=fmt(p.amt)+' @ '+p.rate.toFixed(2)+'% / '+p.term+'yr';
+    if(p.extra) name+=' +'+fmt(p.extra)+'/mo';
+    if(p.lump) name+=' +'+fmt(p.lump)+'/yr';
+    if(p.bw) name+=' biweekly';
+    pins.push({name,p,r});
+    if(pins.length>8) pins.shift();
+    renderPins();
+  });
+  $('btnClear').addEventListener('click',()=>{pins.length=0;renderPins();});
+
+  document.querySelectorAll('#presets .chip').forEach(c=>c.addEventListener('click',()=>{
+    const p=JSON.parse(c.dataset.p);
+    $('rRate').value=p.rate; $('rTerm').value=p.term; $('rExtra').value=p.extra;
+    $('rLump').value=p.lump; $('cBiweekly').checked=p.bw;
+    render();
+  }));
+
+  ['rAmt','rRate','rTerm','rExtra','rLump'].forEach(id=>$(id).addEventListener('input',render));
+  $('cBiweekly').addEventListener('change',render);
+  render();
+})();
+</script>
+
+</body>
+</html>
